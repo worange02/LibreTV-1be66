@@ -2,11 +2,11 @@ const CUSTOMER_SITES = {
     qiqi: {
         api: 'https://www.qiqidys.com/api.php/provide/vod',
         name: '七七资源',
-    }
+    },
     yingshi: {
         api: 'https://cj.lziapi.com/api.php/provide/vod/',
         name: '影视工厂',
-    }
+    },
     fantuan: {
         api: 'https://www.fantuan.tv/api.php/provide/vod/',
         name: '影饭团影视',
