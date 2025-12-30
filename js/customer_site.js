@@ -79,10 +79,6 @@ const CUSTOMER_SITES = {
         api: 'https://api.apibdzy.com/api.php/provide/vod/',  // 已经加了/
         name: '百度资源',
     },
-    '1080zyku': {
-        api: 'https://api.1080zyku.com/inc/api_mac10.php/',  // 已经加了/
-        name: 'TV-1080资源',
-    },
     '155api': {
         api: 'https://155api.com/api.php/provide/vod/',  // 已经加了/
         name: 'AV-155资源',
