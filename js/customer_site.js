@@ -330,7 +330,7 @@ const CUSTOMER_SITES = {
     iqiyizyapi: {
         api: 'https://www.iqiyizyapi.com/api.php/provide/vod/',  // 已经加了/
         name: 'iqiyi资源',
-    },
+    }
 
 };
 
