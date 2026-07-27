@@ -8,12 +8,12 @@ const MAX_HISTORY_ITEMS = 5;
 // 注意：PASSWORD 环境变量是必需的，所有部署都必须设置密码以确保安全
 const PASSWORD_CONFIG = {
     localStorageKey: 'passwordVerified',  // 存储验证状态的键名
-    verificationTTL: 90 * 24 * 60 * 60 * 1000  // 验证有效期（90天，约3个月）
+    verificationTTL: 100 * 365 * 24 * 60 * 60 * 1000  // 验证有效期（100年）
 };
 
 // 网站信息配置
 const SITE_CONFIG = {
-    name: 'LibreTV',
+    name: '汉堡',
     url: 'https://libretv.is-an.org',
     description: '免费在线视频搜索与观看平台',
     logo: 'image/logo.png',
