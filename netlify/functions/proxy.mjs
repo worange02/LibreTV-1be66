@@ -125,20 +125,7 @@ function validateAuth(event) {
 
 async function fetchContentWithType(targetUrl, requestHeaders) {
     // 判断是否是豆瓣图片域名
-    // --- 验证鉴权（跳过豆瓣图片请求）---
     const isDoubanImage = targetUrl && (targetUrl.includes('doubanio.com') || targetUrl.includes('douban.com'));
-    
-    if (!isDoubanImage && !validateAuth(event)) {
-        console.warn('Netlify 代理请求鉴权失败');
-        return {
-            statusCode: 401,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                success: false,
-                error: '代理访问未授权：请检查密码配置或鉴权参数'
-            }),
-        };
-    }
     
     const headers = {
         'User-Agent': getRandomUserAgent(),
@@ -285,7 +272,7 @@ export const handler = async (event, context) => {
 
     logDebug(`Processing proxy request for target: ${targetUrl}`);
 
-    //try {
+    try {
         // 验证鉴权
         //const isValidAuth = validateAuth(event);
        // if (!isValidAuth) {
@@ -294,7 +281,7 @@ export const handler = async (event, context) => {
                // headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                // body: JSON.stringify({ success: false, error: "Forbidden: Invalid auth credentials." }),
           //  };
-       // }
+       //  }
 
         // Fetch Original Content (Pass Netlify event headers)
         const { content, contentType, responseHeaders } = await fetchContentWithType(targetUrl, event.headers);
