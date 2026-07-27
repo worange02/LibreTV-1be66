@@ -442,60 +442,39 @@ function renderRecommend(tag, pageLimit, pageStart) {
 }
 
 async function fetchDoubanData(url) {
-    // 添加超时控制
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
-    
-    // 设置请求选项，包括信号和头部
-    const fetchOptions = {
-        signal: controller.signal,
-        headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-            'Referer': 'https://movie.douban.com/',
-            'Accept': 'application/json, text/plain, */*',
-        }
-    };
-
+    // 优先使用 allorigins（专门做跨域代理，更稳定）
     try {
-        // 添加鉴权参数到代理URL
-        const proxiedUrl = await window.ProxyAuth?.addAuthToProxyUrl ? 
-            await window.ProxyAuth.addAuthToProxyUrl(PROXY_URL + encodeURIComponent(url)) :
-            PROXY_URL + encodeURIComponent(url);
-            
-        // 尝试直接访问（豆瓣API可能允许部分CORS请求）
-        const response = await fetch(proxiedUrl, fetchOptions);
-        clearTimeout(timeoutId);
+        const alloriginsUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+        const response = await fetch(alloriginsUrl, { 
+            signal: AbortSignal.timeout(15000) 
+        });
         
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        
-        return await response.json();
-    } catch (err) {
-        console.error("豆瓣 API 请求失败（直接代理）：", err);
-        
-        // 失败后尝试备用方法：作为备选
-        const fallbackUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-        
-        try {
-            const fallbackResponse = await fetch(fallbackUrl);
-            
-            if (!fallbackResponse.ok) {
-                throw new Error(`备用API请求失败! 状态: ${fallbackResponse.status}`);
-            }
-            
-            const data = await fallbackResponse.json();
-            
-            // 解析原始内容
+        if (response.ok) {
+            const data = await response.json();
             if (data && data.contents) {
                 return JSON.parse(data.contents);
-            } else {
-                throw new Error("无法获取有效数据");
             }
-        } catch (fallbackErr) {
-            console.error("豆瓣 API 备用请求也失败：", fallbackErr);
-            throw fallbackErr; // 向上抛出错误，让调用者处理
         }
+    } catch (e) {
+        console.log("allorigins 失败，尝试直接代理:", e.message);
+    }
+
+    // 备用：直接代理
+    try {
+        const proxiedUrl = PROXY_URL + encodeURIComponent(url);
+        const response = await fetch(proxiedUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Referer': 'https://movie.douban.com/',
+            },
+            signal: AbortSignal.timeout(15000)
+        });
+        
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json();
+    } catch (err) {
+        console.error("豆瓣 API 请求失败:", err);
+        throw err;
     }
 }
 
@@ -528,17 +507,15 @@ function renderDoubanCards(data, container) {
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;');
             
-            // 处理图片URL - 使用公共图床代理
-            const originalCoverUrl = item.cover;
-            const proxiedCoverUrl = 'https://images.weserv.nl/?url=' + encodeURIComponent(originalCoverUrl);
-            
-            // 为不同设备优化卡片布局
-            card.innerHTML = `
-                <div class="relative w-full aspect-[2/3] overflow-hidden cursor-pointer" onclick="fillAndSearchWithDouban('${safeTitle}')">
-                    <img src="${proxiedCoverUrl}" alt="${safeTitle}" 
-                        class="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
-                        onerror="this.onerror=null; this.src='image/logo.png'; this.classList.add('object-contain');"
-                        loading="lazy" referrerpolicy="no-referrer">
+const originalCoverUrl = item.cover;
+const proxiedCoverUrl = 'https://images.weserv.nl/?url=' + encodeURIComponent(originalCoverUrl);
+
+card.innerHTML = `
+    <div class="relative w-full aspect-[2/3] overflow-hidden cursor-pointer" onclick="fillAndSearchWithDouban('${safeTitle}')">
+        <img src="${proxiedCoverUrl}" alt="${safeTitle}" 
+            class="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+            onerror="this.onerror=null; this.src='image/logo.png'; this.classList.add('object-contain');"
+            loading="lazy" referrerpolicy="no-referrer">
                     <div class="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-60"></div>
                     <div class="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded-sm">
                         <span class="text-yellow-400">★</span> ${safeRate}
