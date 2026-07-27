@@ -228,19 +228,6 @@ export const handler = async (event, context) => {
         };
     }
 
-    // --- 验证鉴权 ---
-    if (!validateAuth(event)) {
-        console.warn('Netlify 代理请求鉴权失败');
-        return {
-            statusCode: 401,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                success: false,
-                error: '代理访问未授权：请检查密码配置或鉴权参数'
-            }),
-        };
-    }
-
     // --- Extract Target URL ---
     // Based on netlify.toml rewrite: from = "/proxy/*" to = "/.netlify/functions/proxy/:splat"
     // The :splat part should be available in event.path after the base path
@@ -270,19 +257,24 @@ export const handler = async (event, context) => {
         };
     }
 
+    // --- 验证鉴权（跳过豆瓣图片请求）---
+    const isDoubanImage = targetUrl.includes('doubanio.com') || targetUrl.includes('douban.com');
+    
+    if (!isDoubanImage && !validateAuth(event)) {
+        console.warn('Netlify 代理请求鉴权失败');
+        return {
+            statusCode: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                success: false,
+                error: '代理访问未授权：请检查密码配置或鉴权参数'
+            }),
+        };
+    }
+
     logDebug(`Processing proxy request for target: ${targetUrl}`);
 
     try {
-        // 验证鉴权
-        //const isValidAuth = validateAuth(event);
-       // if (!isValidAuth) {
-           // return {
-             //   statusCode: 403,
-               // headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-               // body: JSON.stringify({ success: false, error: "Forbidden: Invalid auth credentials." }),
-          //  };
-       //  }
-
         // Fetch Original Content (Pass Netlify event headers)
         const { content, contentType, responseHeaders } = await fetchContentWithType(targetUrl, event.headers);
 
