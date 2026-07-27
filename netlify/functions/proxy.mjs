@@ -124,21 +124,34 @@ function validateAuth(event) {
 }
 
 async function fetchContentWithType(targetUrl, requestHeaders) {
+    // 判断是否是豆瓣图片域名
+    const isDoubanImage = targetUrl.includes('doubanio.com') || targetUrl.includes('douban.com');
+    
     const headers = {
         'User-Agent': getRandomUserAgent(),
         'Accept': requestHeaders['accept'] || '*/*',
         'Accept-Language': requestHeaders['accept-language'] || 'zh-CN,zh;q=0.9,en;q=0.8',
-        'Referer': requestHeaders['referer'] || new URL(targetUrl).origin,
     };
+    
+    // 豆瓣图片需要特殊处理 Referer
+    if (isDoubanImage) {
+        headers['Referer'] = 'https://movie.douban.com/';
+        headers['Accept'] = 'image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8';
+    } else {
+        headers['Referer'] = requestHeaders['referer'] || new URL(targetUrl).origin;
+    }
+    
     Object.keys(headers).forEach(key => headers[key] === undefined || headers[key] === null || headers[key] === '' ? delete headers[key] : {});
     logDebug(`Fetching target: ${targetUrl} with headers: ${JSON.stringify(headers)}`);
+    
     try {
         const response = await fetch(targetUrl, { headers, redirect: 'follow' });
         if (!response.ok) {
             const errorBody = await response.text().catch(() => '');
             logDebug(`Fetch failed: ${response.status} ${response.statusText} - ${targetUrl}`);
             const err = new Error(`HTTP error ${response.status}: ${response.statusText}. URL: ${targetUrl}. Body: ${errorBody.substring(0, 200)}`);
-            err.status = response.status; throw err;
+            err.status = response.status; 
+            throw err;
         }
         const content = await response.text();
         const contentType = response.headers.get('content-type') || '';
