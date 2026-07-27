@@ -228,93 +228,77 @@ function rewriteUrlToProxy(url){
 // ===============================
 
 
-function validateAuth(event){
+function validateAuth(event) {
+
+    const params = new URLSearchParams(
+        event.queryStringParameters || {}
+    );
+
+    const authHash = params.get('auth');
+    const timestamp = params.get('t');
 
 
-    const params =
-        new URLSearchParams(
-            event.queryStringParameters || {}
-        );
+    // Netlify 环境变量直接保存 SHA256
+    const serverPasswordHash = process.env.PASSWORD;
 
 
-    const auth =
-        params.get('auth');
-
-
-    const timestamp =
-        params.get('t');
-
-
-
-    const password =
-        process.env.PASSWORD;
-
-
-
-    if(!password){
-
+    if (!serverPasswordHash) {
         console.error(
-            "PASSWORD未设置"
+            '未配置 PASSWORD 环境变量'
         );
-
         return false;
-
     }
 
 
+    if (!authHash) {
+        console.warn(
+            '缺少 auth 参数'
+        );
+        return false;
+    }
 
-    const hash =
-        crypto
-        .createHash('sha256')
-        .update(password)
-        .digest('hex');
 
-
-
-    if(
-        !auth
-        ||
-        auth !== hash
-    ){
+    // 直接比较hash
+    if (authHash !== serverPasswordHash) {
 
         console.warn(
-            "密码hash错误"
+            '密码hash不匹配',
+            {
+                client: authHash,
+                server: serverPasswordHash
+            }
         );
 
         return false;
-
     }
 
 
+    // 时间校验
+    if (timestamp) {
 
-    if(timestamp){
+        const now = Date.now();
 
-        const age =
-            Date.now()
-            -
-            Number(timestamp);
+        const maxAge =
+            10 * 60 * 1000;
 
 
-
-        if(
-            age >
-            10*60*1000
-        ){
+        if (
+            now -
+            Number(timestamp)
+            >
+            maxAge
+        ) {
 
             console.warn(
-                "鉴权过期"
+                'token过期'
             );
 
             return false;
-
         }
-
     }
 
 
-
     return true;
-
 }
 
 
@@ -331,23 +315,26 @@ async function fetchContentWithType(
 ){
 
 
-    const headers = {
+const headers = {
 
-        'User-Agent':
-            getRandomUserAgent(),
-
-
-        // 豆瓣图片必须使用这个
-        'Referer':
-            'https://movie.douban.com/',
+    'User-Agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
 
 
-        'Accept':
-            requestHeaders.accept
-            ||
-            '*/*'
+    'Accept':
+    'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
 
-    };
+
+    'Accept-Language':
+    'zh-CN,zh;q=0.9',
+
+
+    // 豆瓣需要这个
+    'Referer':
+    'https://movie.douban.com/',
+
+
+};
 
 
 
